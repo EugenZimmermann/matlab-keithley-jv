@@ -45,7 +45,7 @@ classdef classKeithley2400 < handle
 %
 % Tested: Matlab 2015b, Win10, NI GPIB-USB-HS+ Controller, Keithley KUSB-488B Controller, Keithley 2400, Keithley2410, Keithley2401
 % Author: Eugen Zimmermann, Konstanz, (C) 2016 eugen.zimmermann@uni-konstanz.de
-% Last Modified on 2016-06-23
+% Last Modified on 2016-10-14
     properties (Constant)
         Type = 'device';
         functionName = 'classKeithley2400';
@@ -196,6 +196,9 @@ classdef classKeithley2400 < handle
                         %# Control auto zero (OFF = disabled; ON = enabled; ONCE = force immediate update of auto zero.)
                         %# Helpful for drifting zero as, i.e., when the device is heating up
                         fprintf(device.connectionHandle,':SYST:AZER:STAT ON');
+                        
+                        %# reset time at startup
+                        fprintf(device.connectionHandle,':SYST:TIME:RES');
 
                         %# Enable/disable timestamp reset when exiting idle.
                         fprintf(device.connectionHandle,':SYST:TIME:RES:AUTO OFF');
@@ -517,7 +520,7 @@ classdef classKeithley2400 < handle
         function [outputData,err] = measureSweepV(device,varargin)
             input = inputParser;
             addRequired(input,'device')
-            addParameter(input,'plotHandle',0,@(x) x==0 || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
+            addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             parse(input,device,varargin{:});
             
             ax = input.Results.plotHandle;
@@ -577,10 +580,11 @@ classdef classKeithley2400 < handle
                     plot(ax,voltage(1:n1),current(1:n1))
                     xlabel(ax,'Voltage (V)')
                     ylabel(ax,'Current (A)')
-                    drawnow
+
                 elseif isstruct(ax) && isfield(ax,'update')
                     ax.update(voltage(1:n1),current(1:n1),'xlabel','Voltage (V)','ylabel','Current (A)')
                 end
+                drawnow
                 n1 = n1+1;
             end
 
@@ -639,7 +643,7 @@ classdef classKeithley2400 < handle
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',device.intRate,validationFcn('keithleyIntegrationRate',device.functionName));
             addParameter(input,'spacing',device.spacing,validationFcn('keithleySpacing',device.functionName));
-            addParameter(input,'plotHandle',0,@(x) x==0 || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
+            addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             addParameter(input,'prepulsV',0,validationFcn('keithleySetV',device.functionName));
             addParameter(input,'prepulsDuration',0,validationFcn('keithleyDelay',device.functionName));
             addParameter(input,'prepulsDelay',0,validationFcn('keithleyDelay',device.functionName));
@@ -680,7 +684,7 @@ classdef classKeithley2400 < handle
             addRequired(input,'step',validationFcn('keithleySetStepV',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',device.intRate,validationFcn('keithleyIntegrationRate',device.functionName));
-            addParameter(input,'plotHandle',0,@(x) x==0 || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
+            addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             parse(input,device,vmpp,voc,step,delay,varargin{:})
             
             ax = input.Results.plotHandle;
@@ -885,10 +889,12 @@ classdef classKeithley2400 < handle
             addRequired(input,'device')
             addRequired(input,'duration',validationFcn('keithleyDelay',device.functionName));
             addParameter(input,'hold',0,validationFcn('boolean',device.functionName));
-            addParameter(input,'plotHandle',0,@(x) x==0 || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
+            addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
+            addParameter(input,'temperatureController',[]);
             parse(input,device,duration,varargin{:})
             
             ax = input.Results.plotHandle;
+            tC = input.Results.temperatureController;
             
             outputData = struct();
             
@@ -906,10 +912,15 @@ classdef classKeithley2400 < handle
             end
             
             %# preallocate memory for results
+            endReached = 0;
             current = zeros(2500,1);
             voltage = zeros(2500,1);
             time = zeros(2500,1);
-            endReached = 0;
+
+            if ~isempty(tC)
+                temperature = zeros(2500,1);
+                tempFactor = tC.startTemp>tC.endTemp;
+            end
             
             %# clear Trigger events
             fprintf(device.connectionHandle,':TRIGger:CLEar');
@@ -954,6 +965,21 @@ classdef classKeithley2400 < handle
                 current = nums(2:3:end-1);
                 time = nums(3:3:end);
                 a = time(end)-time(1);
+                if ~isempty(tC)
+                    b = length(nonzeros(time));
+                    c = length(nonzeros(temperature));
+                    outputTemp = tC.device.getTemp();
+                    temperature(c+1:b) = repmat(outputTemp.temperature,size(c+1:b));
+                    if abs((time(end)-time(1))-tC.delay)<1 && tC.rampActive
+                        tC.device.startRamp(tC.rate);
+                        tC.device.setTemp(tC.endTemp);
+                        disp('ramp started')
+                        pause(2)
+                    end
+                    if con_a_b(tempFactor,outputTemp.temperature<tC.endTemp,outputTemp.temperature>tC.endTemp) && (duration-a)>tC.delay
+                        duration = a+tC.delay;
+                    end
+                end
                 
                 if (length(voltage)/divisor)>1
                     length(voltage)
@@ -983,6 +1009,9 @@ classdef classKeithley2400 < handle
             outputData.current = current';
             outputData.time = time';
             outputData.t0 = t0';
+            if ~isempty(tC)
+                outputData.temperature = temperature(1:length(time));
+            end
             
             %# check if scan was aborted by user and adjust status
             if device.abortMeasurement
@@ -1009,12 +1038,14 @@ classdef classKeithley2400 < handle
             addRequired(input,'duration',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'delay',0,validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',min(device.intRate*2,10),validationFcn('keithleyIntegrationRate',device.functionName));
-            addParameter(input,'plotHandle',0,@(x) x==0 || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
+            addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             addParameter(input,'hold',0,validationFcn('boolean',device.functionName));
             addParameter(input,'track','mpp',@(x) any(validatestring(lower(x),{'mpp','voc','jsc'})));
+            addParameter(input,'temperatureController',[]);
             parse(input,device,sourceV,duration,varargin{:})
             
             ax = input.Results.plotHandle;
+            tC = input.Results.temperatureController;
             
             outputData = struct();
                 
@@ -1031,16 +1062,21 @@ classdef classKeithley2400 < handle
                     return
                 end
                 
-                [outputData,err] = device.measureTimeScan(duration,'plotHandle',ax,'hold',input.Results.hold);
+                [outputData,err] = device.measureTimeScan(duration,'plotHandle',ax,'hold',input.Results.hold,'temperatureController',tC);
                 return
             end
             
             %first data
+            n1=1;
             power  = zeros(100000,1);
             voltage = zeros(100000,1);
             current = zeros(100000,1);
             time = zeros(100000,1);
-            n1=1;
+
+            if ~isempty(tC)
+                temperature = zeros(10000,1);
+                tempFactor = tC.startTemp>tC.endTemp;
+            end
             
             currentVolt = sourceV;
             step = 0.02;
@@ -1054,7 +1090,8 @@ classdef classKeithley2400 < handle
             while a<duration && ~device.abortMeasurement && ~device.abortAllMeasurements
                 err = device.setSweepV(currentVolt-2*step,currentVolt+2*step,step,input.Results.delay,input.Results.integrationRate);
                 if err
-                    return
+
+                    break;
                 end
                 [outputSweep,err] = device.measureSweepV();
                 if err == 88 || err == 99
@@ -1068,12 +1105,26 @@ classdef classKeithley2400 < handle
                         [power(n1),index] = max(sweepPower);
                     	current(n1) = outputSweep.current(index);
                     case 'voc'
-                        [current(n1),index] = min(outputSweep.current);
+                        [current(n1),index] = min(abs(outputSweep.current));
                         power(n1) = sweepPower(index);
                 end
                 voltage(n1) = outputSweep.voltage(index);
                 time(n1) = outputSweep.time(index);
                 a = time(n1)-time(1);
+                
+                %# temperature controll
+                if ~isempty(tC)
+                    outputTemp = tC.device.getTemp();
+                    temperature(n1) = outputTemp.temperature;
+                    if abs((time(n1)-time(1))-tC.delay)<1 && tC.rampActive
+                        tC.device.startRamp(tC.rate);
+                        tC.device.setTemp(tC.endTemp);
+                        disp('ramp started')
+                    end
+                    if con_a_b(tempFactor,outputTemp.temperature<tC.endTemp,outputTemp.temperature>tC.endTemp) && (duration-a)>tC.delay
+                        duration = a+tC.delay;
+                    end
+                end
                 
                 %# new center voltage for next loop
                 currentVolt = voltage(n1); 
@@ -1110,7 +1161,7 @@ classdef classKeithley2400 < handle
                     end
                     drawnow
                 elseif isstruct(ax) && isfield(ax,'update')
-                    switch input.results.track
+                    switch input.Results.track
                         case 'mpp'
                             ax.update(time(1:ceil(n1/250):n1),power(1:ceil(n1/250):n1),'xlabel','Time (s)','ylabel','Maximum Power (mW)','hold',input.Results.hold)
                         case 'voc'
@@ -1126,6 +1177,9 @@ classdef classKeithley2400 < handle
             outputData.voltage = abs(voltage(1:max(n1-1,1)));
             outputData.current = abs(current(1:max(n1-1,1)));
             outputData.time = time(1:max(n1-1,1));
+            if ~isempty(tC)
+                outputData.temperature = temperature(1:max(n1-1,1));
+            end
         end
         
         function [outputData,err] = measureTimePointV(device,sourceV,duration,delay,varargin)
@@ -1135,7 +1189,7 @@ classdef classKeithley2400 < handle
             addRequired(input,'duration',validationFcn('keithleyDelayMult',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',device.intRate,validationFcn('keithleyIntegrationRate',device.functionName));
-            addParameter(input,'plotHandle',0,@(x) x==0 || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
+            addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             parse(input,device,sourceV,duration,delay,varargin{:})
             
             ax = input.Results.plotHandle;
@@ -1205,7 +1259,7 @@ classdef classKeithley2400 < handle
             addRequired(input,'duration',validationFcn('keithleyDelay',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',min(device.intRate*2,10),validationFcn('keithleyIntegrationRate',device.functionName));
-            addParameter(input,'plotHandle',0,@(x) x==0 || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
+            addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             parse(input,device,start,stop,step,duration,delay,varargin{:})
             
             ax = input.Results.plotHandle;

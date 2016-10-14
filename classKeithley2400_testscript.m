@@ -1,11 +1,12 @@
-addpath('.\Common')
+cd('.')
+addpath(genpath('.\Common'))
 addpath(genpath('.\CommonDevice\Keithley'))
 
 %# define pause time between commands for test
 pTime = 1;
 
 %# create Keithley2400 object with specified connection type and port
-k = classKeithley2400_pub('connectionType','gpib','port',24);
+k = classKeithley2400('connectionType','gpib','port',24);
 
 %# reset device to initial state
 k.reset()
