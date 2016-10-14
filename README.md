@@ -7,12 +7,19 @@ All methods are implemented into classKeithley2400_testscript.m and can be teste
 
 Tested: Matlab 2015b, Win10, NI GPIB-USB-HS+ Controller, Keithley KUSB-488B Controller, Keithley 2400, Keithley2410, Keithley2401
 
+Due to a significant change in graphics handling with Matlab 2014b this program is NOT COMPATIBLE TO MATLAB 2014a AND BELOW.
+
 Author: Eugen Zimmermann, Konstanz, 2016 eugen.zimmermann [at] uni-konstanz [dot] de
 
-Last Modified on 2016-06-23
+Last Modified on 2016-10-14
 
-Version 1.0
-
-Goals for next version:
+ToDo:
 - implement exceptions for serial connection
 - implement bytesAvailebleFunction for data readings
+
+Version 1.1
+- error corrections in classKeithley2400_testscript.m and classKeithley2400.m
+- possibility to measure steady state at low temperatures
+
+Version 1.0
+- initial release
