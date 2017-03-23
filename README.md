@@ -13,7 +13,6 @@ Author: Eugen Zimmermann, Konstanz, 2016 eugen.zimmermann [at] uni-konstanz [dot
 
 Based on publication:
 Characterization of perovskite solar cells: Towards a reliable measurement protocol
-
 Eugen Zimmermann, Ka Kan Wong, Michael Müller, Hao Hu, Philipp Ehrenreich, Markus Kohlstädt, Uli Würfel, Simone Mastroianni, Gayathri Mathiazhagan, Andreas Hinsch, Tanaji P. Gujar, Mukundan Thelakkat, Thomas Pfadler, and Lukas Schmidt-Mende
 http://dx.doi.org/10.1063/1.4960759
 
