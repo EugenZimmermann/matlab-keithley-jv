@@ -149,7 +149,7 @@ classdef classKeithley2400 < handle
         function setPort(device,port)
             input = inputParser;
                 addRequired(input,'device')
-                addRequired(input,'port',validationFcn([device.connectionType,'Port'],device.functionName))
+                addRequired(input,'port',validationFcn([lower(device.connectionType),'Port'],device.functionName))
             parse(input,device,port);
             
             device.port = input.Results.port;
@@ -181,10 +181,9 @@ classdef classKeithley2400 < handle
         
         function connect(device)
             if device.portSet
-                device_temp = initialize_Keithley(device.connectionType, device.port);
-                set(device_temp,'Timeout',2);
-                
                 try
+					device_temp = initialize_Keithley(device.connectionType, device.port);
+					set(device_temp,'Timeout',2);
                     %# check if program is connected to correct device
                     id_temp = query(device_temp,'*IDN?');
                     device.connected = strfind(lower(id_temp),lower(device.defaultID));
@@ -527,6 +526,16 @@ classdef classKeithley2400 < handle
             
             %# initialize default values
             outputData = struct();
+            outputData.voltage = 0;
+            outputData.current = 0;
+            outputData.time    = 0;
+            if device.abortMeasurement
+                err = 88;
+                return
+            elseif device.abortAllMeasurements
+                err = 99;
+                return
+            end
 
             if ~device.connected
                 err = 1;
@@ -580,7 +589,6 @@ classdef classKeithley2400 < handle
                     plot(ax,voltage(1:n1),current(1:n1))
                     xlabel(ax,'Voltage (V)')
                     ylabel(ax,'Current (A)')
-
                 elseif isstruct(ax) && isfield(ax,'update')
                     ax.update(voltage(1:n1),current(1:n1),'xlabel','Voltage (V)','ylabel','Current (A)')
                 end
@@ -615,7 +623,7 @@ classdef classKeithley2400 < handle
             input = inputParser;
             addRequired(input,'device')
             addRequired(input,'prepulsV',validationFcn('keithleySetV',device.functionName));
-            addRequired(input,'duration',validationFcn('keithleyDelay',device.functionName));
+            addRequired(input,'duration',validationFcn('keithleyDuration',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             parse(input,device,prepulsV,duration,delay)
 
@@ -690,6 +698,16 @@ classdef classKeithley2400 < handle
             ax = input.Results.plotHandle;
 
             outputData = struct();
+            outputData.voltage = 0;
+            outputData.current = 0;
+            outputData.time    = 0;
+            if device.abortMeasurement
+                err = 88;
+                return
+            elseif device.abortAllMeasurements
+                err = 99;
+                return
+            end
             
             if ~device.connected
                 err = 1;
@@ -887,7 +905,7 @@ classdef classKeithley2400 < handle
         function [outputData,err] = measureTimeScan(device,duration,varargin)
             input = inputParser;
             addRequired(input,'device')
-            addRequired(input,'duration',validationFcn('keithleyDelay',device.functionName));
+            addRequired(input,'duration',validationFcn('keithleyDuration',device.functionName));
             addParameter(input,'hold',0,validationFcn('boolean',device.functionName));
             addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             addParameter(input,'temperatureController',[]);
@@ -897,6 +915,16 @@ classdef classKeithley2400 < handle
             tC = input.Results.temperatureController;
             
             outputData = struct();
+            outputData.voltage = 0;
+            outputData.current = 0;
+            outputData.time    = 0;
+            if device.abortMeasurement
+                err = 88;
+                return
+            elseif device.abortAllMeasurements
+                err = 99;
+                return
+            end
             
             if ~device.connected
                 err = 1;
@@ -916,7 +944,6 @@ classdef classKeithley2400 < handle
             current = zeros(2500,1);
             voltage = zeros(2500,1);
             time = zeros(2500,1);
-
             if ~isempty(tC)
                 temperature = zeros(2500,1);
                 tempFactor = tC.startTemp>tC.endTemp;
@@ -942,13 +969,21 @@ classdef classKeithley2400 < handle
             divisor = 2000;
             divisorStep = divisor;
             %# extract measured values from string while measuring and update plot
-            while a<duration && ~device.abortMeasurement && ~device.abortAllMeasurements && ~endReached
+            while ~device.abortMeasurement && ~device.abortAllMeasurements && ~endReached && a<duration
+                if ~device.getOutputState()
+                    outputData.voltage = 0;
+                    outputData.current = 0;
+                    outputData.time    = 0;
+                    err = 88;
+                    return;
+                end
                 try
                     tmp = [tmp,fscanf(device.connectionHandle,'%c',84)];
                     splitted = strsplit(tmp,',');
                 catch eee
                     disp(eee.message);
-                    break;
+%                     device.abortAllMeasurements = 1;
+%                     break;
                 end
                 
                 %# stop reading if end of transmission is reached
@@ -976,7 +1011,7 @@ classdef classKeithley2400 < handle
                         disp('ramp started')
                         pause(2)
                     end
-                    if con_a_b(tempFactor,outputTemp.temperature<tC.endTemp,outputTemp.temperature>tC.endTemp) && (duration-a)>tC.delay
+                    if con_a_b(tempFactor<0,outputTemp.temperature<tC.endTemp,outputTemp.temperature>tC.endTemp) && (duration-a)>tC.delay
                         duration = a+tC.delay;
                     end
                 end
@@ -1015,17 +1050,18 @@ classdef classKeithley2400 < handle
             
             %# check if scan was aborted by user and adjust status
             if device.abortMeasurement
-                device.setOutputState(0);
                 device.abortMeasurement = 0;
+                device.setOutputState(0);
                 err = 88;
                 return
             elseif device.abortAllMeasurements
-                device.setOutputState(0);
                 device.abortAllMeasurements = 0;
+                device.setOutputState(0);
                 err = 99;
                 return
             else
                 device.goIdle();
+                device.setOutputState(0);
                 err = 0;
                 return
             end
@@ -1035,7 +1071,7 @@ classdef classKeithley2400 < handle
             input = inputParser;
             addRequired(input,'device')
             addRequired(input,'sourceV',validationFcn('keithleySetV',device.functionName));
-            addRequired(input,'duration',validationFcn('keithleyDelay',device.functionName));
+            addRequired(input,'duration',validationFcn('keithleyDuration',device.functionName));
             addOptional(input,'delay',0,validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',min(device.intRate*2,10),validationFcn('keithleyIntegrationRate',device.functionName));
             addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
@@ -1048,7 +1084,18 @@ classdef classKeithley2400 < handle
             tC = input.Results.temperatureController;
             
             outputData = struct();
-                
+            outputData.power = 0;
+            outputData.voltage = 0;
+            outputData.current = 0;
+            outputData.time    = 0;
+            if device.abortMeasurement
+                err = 88;
+                return
+            elseif device.abortAllMeasurements
+                err = 99;
+                return
+            end
+            
             if ~device.connected
                 err = 1;
                 errordlg(sprintf(getErrorMessage('deviceNotConnected'),device.defaultID))
@@ -1072,7 +1119,6 @@ classdef classKeithley2400 < handle
             voltage = zeros(100000,1);
             current = zeros(100000,1);
             time = zeros(100000,1);
-
             if ~isempty(tC)
                 temperature = zeros(10000,1);
                 tempFactor = tC.startTemp>tC.endTemp;
@@ -1090,7 +1136,6 @@ classdef classKeithley2400 < handle
             while a<duration && ~device.abortMeasurement && ~device.abortAllMeasurements
                 err = device.setSweepV(currentVolt-2*step,currentVolt+2*step,step,input.Results.delay,input.Results.integrationRate);
                 if err
-
                     break;
                 end
                 [outputSweep,err] = device.measureSweepV();
@@ -1121,7 +1166,7 @@ classdef classKeithley2400 < handle
                         tC.device.setTemp(tC.endTemp);
                         disp('ramp started')
                     end
-                    if con_a_b(tempFactor,outputTemp.temperature<tC.endTemp,outputTemp.temperature>tC.endTemp) && (duration-a)>tC.delay
+                    if con_a_b(tempFactor<0,outputTemp.temperature<tC.endTemp,outputTemp.temperature>tC.endTemp) && (duration-a)>tC.delay
                         duration = a+tC.delay;
                     end
                 end
@@ -1189,24 +1234,48 @@ classdef classKeithley2400 < handle
             addRequired(input,'duration',validationFcn('keithleyDelayMult',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',device.intRate,validationFcn('keithleyIntegrationRate',device.functionName));
+            addParameter(input,'lightControl',[]);
             addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             parse(input,device,sourceV,duration,delay,varargin{:})
+            
+            lC = input.Results.lightControl;
+            if isfield(lC,'device')
+                lC.state = lC.customLightMeasurement(lC.cLightList{lC.n},1);
+                lC.duration = lC.customLightMeasurement(lC.cLightList{lC.n},2);
+                lC.device.newList(lC.duration,lC.state); %Light control unit (shutter) should have implemented a function list, which accepts state and duration as numeric array
+            end
             
             ax = input.Results.plotHandle;
             
             outputData = struct();
+            outputData.voltage = 0;
+            outputData.current = 0;
+            outputData.time    = 0;
+            if device.abortMeasurement
+                err = 88;
+                return
+            elseif device.abortAllMeasurements
+                err = 99;
+                return
+            end
             
             if ~device.connected
                 err = 1;
                 errordlg(sprintf(getErrorMessage('deviceNotConnected'),device.defaultID))
                 return
             end
-            
             err = device.setTimeScan(input.Results.sourceV(1),input.Results.delay,input.Results.integrationRate);
             if err
                 return
             end
-            
+
+            if isfield(lC,'device')
+                % if light control is activated, start now
+                err = lC.device.start();
+%                 if err
+%                     return
+%                 end
+            end
             [outputData,err] = device.measureTimeScan(input.Results.duration(1),'plotHandle',ax);
             if err
                 return
@@ -1231,6 +1300,13 @@ classdef classKeithley2400 < handle
                 end
             end
             device.setOutputState(0);
+            if isfield(lC,'device')
+                err = lC.device.close();
+                err = lC.device.clear();
+%                 if err
+%                     return
+%                 end
+            end
             outputData.time = outputData.time-outputData.time(1);
             
             %# check if scan was aborted by user and adjust status
@@ -1256,7 +1332,7 @@ classdef classKeithley2400 < handle
             addRequired(input,'start',validationFcn('keithleySetV',device.functionName));
             addRequired(input,'stop',validationFcn('keithleySetV',device.functionName));
             addRequired(input,'step',validationFcn('keithleySetStepV',device.functionName));
-            addRequired(input,'duration',validationFcn('keithleyDelay',device.functionName));
+            addRequired(input,'duration',validationFcn('keithleyDuration',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',min(device.intRate*2,10),validationFcn('keithleyIntegrationRate',device.functionName));
             addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
@@ -1265,6 +1341,16 @@ classdef classKeithley2400 < handle
             ax = input.Results.plotHandle;
             
             outputData = struct();
+            outputData.voltage = 0;
+            outputData.current = 0;
+            outputData.time    = 0;
+            if device.abortMeasurement
+                err = 88;
+                return
+            elseif device.abortAllMeasurements
+                err = 99;
+                return
+            end
             
             if ~device.connected
                 err = 1;
@@ -1284,11 +1370,13 @@ classdef classKeithley2400 < handle
                 return
             end
             
-            for sourceV = start:step:stop
+            for sourceV=start:step:stop
+                sourceV
                 err = device.updateTimeScan(sourceV,delay,integrationRate);
                 if err
                     return
                 end
+                
                 if start==sourceV
                     [outputData,err] = device.measureTimeScan(duration,'plotHandle',ax);
                     t0 = outputData.time(1);
@@ -1298,9 +1386,10 @@ classdef classKeithley2400 < handle
                     outputData.current = [outputData.current;outputDataTemp.current];
                     outputData.time = [outputData.time;outputDataTemp.time-t0];
                 end
+                
                 if err == 88 || err == 99
-                    return;
-                end                
+                    return
+                end
             end
             device.setOutputState(0);
         end
