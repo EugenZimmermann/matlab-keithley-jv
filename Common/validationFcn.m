@@ -22,14 +22,19 @@ function validFcn = validationFcn(fcnKey,fcnName)
     fcn.connectionType = @(x) assert(~isempty(regexpi(x,'^serial$|^gpib$')),getErrorMessage(fcnKey,fcnName));
     
     fcn.boolean     = @(x) assert((isnumeric(x) && isscalar(x) && (x==1||x==0))|islogical(x));
+    fcn.temperature = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=320,getErrorMessage(fcnKey,fcnName));
+    fcn.tries       = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=10,getErrorMessage(fcnKey,fcnName));
     
-    fcn.keithleySetV = @(x) assert(isnumeric(x) && isscalar(x) && abs(x)<=20,getErrorMessage(fcnKey,fcnName));
-    fcn.keithleySetMultV = @(x) assert(isnumeric(x) && max(abs(x))<=20,getErrorMessage(fcnKey,fcnName));
-    fcn.keithleySetStepV = @(x) assert(isnumeric(x) && isscalar(x) && (abs(x)>=0.001 && abs(x)<=5),getErrorMessage(fcnKey,fcnName));
-    fcn.keithleyDelay = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=9999,getErrorMessage(fcnKey,fcnName));
-    fcn.keithleyDelayMult = @(x) assert(isnumeric(x) && min(x)>=0 && max(x)<=9999,getErrorMessage(fcnKey,fcnName));
+    fcn.keithleySetV        = @(x) assert(isnumeric(x) && isscalar(x) && abs(x)<=20,getErrorMessage(fcnKey,fcnName));
+    fcn.keithleySetMultV    = @(x) assert(isnumeric(x) && max(abs(x))<=20,getErrorMessage(fcnKey,fcnName));
+    fcn.keithleySetStepV    = @(x) assert(isnumeric(x) && isscalar(x) && (abs(x)>=0.001 && abs(x)<=5),getErrorMessage(fcnKey,fcnName));
+    fcn.keithleyDelay       = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=9999,getErrorMessage(fcnKey,fcnName));
+    fcn.keithleyDelayMult   = @(x) assert(isnumeric(x) && min(x)>=0 && max(x)<=9999,getErrorMessage(fcnKey,fcnName));
     fcn.keithleyIntegrationRate = @(x) assert(isnumeric(x) && isscalar(x) && x>=0.01 && x<=10,getErrorMessage(fcnKey,fcnName));   
-    fcn.keithleySpacing = @(x) assert(any(validatestring(x,{'LIN','LOG'})),getErrorMessage(fcnKey,fcnName)); 
+    fcn.keithleySpacing     = @(x) assert(any(validatestring(x,{'LIN','LOG'})),getErrorMessage(fcnKey,fcnName));
+    
+    fcn.fwsAbsPos = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=4096 && round(x)==x,getErrorMessage(fcnKey,fcnName));
+    fcn.fwsRelPos = fcn.fwsAbsPos;
     
     try
         validFcn = fcn.(fcnKey);

@@ -24,6 +24,8 @@ function errMsg = getErrorMessage(errKey,varargin)
     E.deviceNotConnected = 'Device %s not connected!';
     
     E.boolean = '\nWhile setting a ''state'' property of ''%s'': \n-> Value must be numeric (0 or 1), or logical (false or true).';
+    E.temperature = '\nWhile setting a ''temperature'' property of ''%s'': \n-> Value must be numeric and in the range of 0 to 320 K.';
+    E.tries = '\nWhile setting a ''tries'' property of ''%s'': \n-> Value must be numeric and in the range of 0 to 10.';
     
     E.keithleySetV = '\nWhile setting a voltage property of ''%s'': \n-> Value must be numeric and in the range of -20 to 20 V.';
     E.keithleySetMultV = E.keithleySetV;
@@ -35,6 +37,10 @@ function errMsg = getErrorMessage(errKey,varargin)
 
     E.keithleySetSourceV = '\nCould not set Voltage as source in %s!';
     E.keithleySetIntegrationRate = '\nCould not set integration rate in %s!';
+    
+    E.fwsAbsPos = '\nWhile setting a absolute position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 4096 steps.';
+    E.fwsRelPos = '\nWhile setting a relative position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 4096 steps.';
+    
     try
         if nargin > 1
             errMsg = sprintf(E.(errKey),varargin{1});
