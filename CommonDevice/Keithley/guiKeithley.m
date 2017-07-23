@@ -218,7 +218,7 @@ function [deviceClass,deviceGUI,guiElements] = guiKeithley(parent,varargin)
                     hObject.Data(action.Indices(1),action.Indices(2)) = lower(temp_port);
                 else
                     hObject.Data(action.Indices(1),action.Indices(2)) = {action.PreviousData};
-                    errordlg('Spacing can only be serial or GPIB', 'Error')
+                    errordlg('ConnectionType can only be serial or GPIB. Serial connection is NOT supported by most measurement functions.', 'Error')
                 end
             case 'DelayTimeIV'
                 [result,status] = check_value(action.NewData,0,3600);

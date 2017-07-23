@@ -16,10 +16,10 @@ Characterization of perovskite solar cells: Towards a reliable measurement proto
 Eugen Zimmermann, Ka Kan Wong, Michael Müller, Hao Hu, Philipp Ehrenreich, Markus Kohlstädt, Uli Würfel, Simone Mastroianni, Gayathri Mathiazhagan, Andreas Hinsch, Tanaji P. Gujar, Mukundan Thelakkat, Thomas Pfadler, and Lukas Schmidt-Mende
 http://dx.doi.org/10.1063/1.4960759
 
-Last Modified on 2016-10-14
+Last Modified on 2017-07-23
 
 ToDo:
-- implement exceptions for serial connection
+- implement exceptions for serial connection (cancled, no asynchronus communication possible)
 - implement bytesAvailebleFunction for data readings
 
 Version 1.1
