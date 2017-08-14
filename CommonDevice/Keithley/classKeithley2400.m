@@ -1036,6 +1036,7 @@ classdef classKeithley2400 < handle
                     fprintf(device.connectionHandle,':READ?');
                 end
                 
+                modeYData = con_a_b(strcmp(mode,'V'),current(1:ceil(length(current)/250):end),voltage(1:ceil(length(voltage)/250):end));
                 if isgraphics(ax,'axes')
                     if input.Results.hold
                         hold on
@@ -1043,12 +1044,12 @@ classdef classKeithley2400 < handle
                         hold off
                     end
                     
-                    plot(ax,time(1:ceil(length(time)/250):end),current(1:ceil(length(current)/250):end),'Color',ax.ColorOrder(1,:))
+                    plot(ax,time(1:ceil(length(time)/250):end),modeYData,'Color',ax.ColorOrder(1,:))
                     xlabel(ax,'Time (s)')
                     ylabel(ax,modeYLabel)
                     drawnow
                 elseif isstruct(ax) && isfield(ax,'update')
-                    ax.update(time(1:ceil(length(time)/250):end),current(1:ceil(length(current)/250):end),'xlabel','Time (s)','ylabel',modeYLabel,'hold',input.Results.hold)
+                    ax.update(time(1:ceil(length(time)/250):end),modeYData,'xlabel','Time (s)','ylabel',modeYLabel,'hold',input.Results.hold)
                 end
             end
             
@@ -1391,7 +1392,6 @@ classdef classKeithley2400 < handle
             end
             
             for sourceV=start:step:stop
-                sourceV
                 err = device.updateTimeScan(sourceV,delay,integrationRate);
                 if err
                     return
