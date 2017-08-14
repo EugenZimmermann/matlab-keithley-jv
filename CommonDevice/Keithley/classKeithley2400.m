@@ -371,12 +371,13 @@ classdef classKeithley2400 < handle
             end
         end
 
-        function err = updatePointV(device,sourceV,delay)            
+        function err = updatePointV(device,sourceV,delay,varargin)            
             input = inputParser;
             addRequired(input,'device')
             addRequired(input,'sourceV',validationFcn('keithleySetV',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
-            parse(input,device,sourceV,delay)
+            addParameter(input,'mode','V',validationFcn('keithleyMode',device.functionName));
+            parse(input,device,sourceV,delay,varargin{:})
 
             if ~device.connected
                 err = 1;
@@ -385,7 +386,7 @@ classdef classKeithley2400 < handle
             end
 
             %# set sweep mode to single point
-            err = single_Keithley(device.connectionHandle, 'V', input.Results.sourceV);
+            err = single_Keithley(device.connectionHandle, input.Results.mode, input.Results.sourceV);
             if err
                 return
             end
@@ -832,7 +833,10 @@ classdef classKeithley2400 < handle
             addRequired(input,'sourceV',validationFcn('keithleySetV',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',device.intRate,validationFcn('keithleyIntegrationRate',device.functionName));
+            addParameter(input,'mode','V',validationFcn('keithleyMode',device.functionName));
             parse(input,device,sourceV,delay,varargin{:})
+            
+            mode = input.Results.mode;
             
             if ~device.connected
                 err = 1;
@@ -844,13 +848,13 @@ classdef classKeithley2400 < handle
             fprintf(device.connectionHandle,':TRIGger:CLEar');
             
             %# set voltage as source
-            err = setSource_Keithley(device.connectionHandle, 'V');
+            err = setSource_Keithley(device.connectionHandle, mode);
             if err
                 errordlg(sprintf(getErrorMessage('keithleySetSourceV'),device.functionName))
                 return
             end
             
-            err = device.updateTimeScan(input.Results.sourceV,input.Results.delay,input.Results.integrationRate,'resetTime',1);
+            err = device.updateTimeScan(input.Results.sourceV,input.Results.delay,input.Results.integrationRate,'resetTime',1,'mode',mode);
             if err
                 return
             end
@@ -879,7 +883,11 @@ classdef classKeithley2400 < handle
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',device.intRate,validationFcn('keithleyIntegrationRate',device.functionName));
             addParameter(input,'resetTime',0,validationFcn('boolean',device.functionName));
+            addParameter(input,'mode','V',validationFcn('keithleyMode',device.functionName));
             parse(input,device,sourceV,delay,varargin{:})
+            
+            mode = input.Results.mode;
+                modeSense = con_a_b(strcmp(mode,'V'),'I','V');
             
             if ~device.connected
                 err = 1;
@@ -887,12 +895,12 @@ classdef classKeithley2400 < handle
                 return
             end
             
-            err = device.updatePointV(input.Results.sourceV,input.Results.delay);
+            err = device.updatePointV(input.Results.sourceV,input.Results.delay,'mode',mode);
             if err
                 return
             end
             
-            err = setSense_Keithley(device.connectionHandle, 'I', 'integrationRate',input.Results.integrationRate);
+            err = setSense_Keithley(device.connectionHandle, modeSense, 'integrationRate',input.Results.integrationRate);
             if err
                 return
             end
@@ -909,7 +917,11 @@ classdef classKeithley2400 < handle
             addParameter(input,'hold',0,validationFcn('boolean',device.functionName));
             addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             addParameter(input,'temperatureController',[]);
+            addParameter(input,'mode','V',validationFcn('keithleyMode',device.functionName));
             parse(input,device,duration,varargin{:})
+            
+            mode = input.Results.mode;
+                modeYLabel = con_a_b(strcmp(mode,'V'),'Current (A)','Voltage (V)');
             
             ax = input.Results.plotHandle;
             tC = input.Results.temperatureController;
@@ -1033,10 +1045,10 @@ classdef classKeithley2400 < handle
                     
                     plot(ax,time(1:ceil(length(time)/250):end),current(1:ceil(length(current)/250):end),'Color',ax.ColorOrder(1,:))
                     xlabel(ax,'Time (s)')
-                    ylabel(ax,'Current (A)')
+                    ylabel(ax,modeYLabel)
                     drawnow
                 elseif isstruct(ax) && isfield(ax,'update')
-                    ax.update(time(1:ceil(length(time)/250):end),current(1:ceil(length(current)/250):end),'xlabel','Time (s)','ylabel','Current (A)','hold',input.Results.hold)
+                    ax.update(time(1:ceil(length(time)/250):end),current(1:ceil(length(current)/250):end),'xlabel','Time (s)','ylabel',modeYLabel,'hold',input.Results.hold)
                 end
             end
             
@@ -1110,6 +1122,14 @@ classdef classKeithley2400 < handle
                 end
                 
                 [outputData,err] = device.measureTimeScan(duration,'plotHandle',ax,'hold',input.Results.hold,'temperatureController',tC);
+                return
+            elseif strcmpi(input.Results.track,'voc')
+                err = device.setTimeScan(0,input.Results.delay,input.Results.integrationRate,'mode','I');
+                if err
+                    return
+                end
+                
+                [outputData,err] = device.measureTimeScan(duration,'plotHandle',ax,'hold',input.Results.hold,'temperatureController',tC,'mode','I');
                 return
             end
             

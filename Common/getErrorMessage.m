@@ -32,14 +32,23 @@ function errMsg = getErrorMessage(errKey,varargin)
     E.keithleySetStepV = '\nWhile setting a voltage step property of ''%s'': \n-> Value must be numeric and in the range of 0.001 to 5 V.';
     E.keithleyDelay = '\nWhile setting a time property of ''%s'': \n-> Value must be numeric and in the range of 0 to 9999 s.';
     E.keithleyDelayMult = E.keithleyDelay;
+    E.keithleyDuration = '\nWhile setting a duration property of ''%s'': \n-> Value must be numeric and in the range of 0 to 9999 s.';
     E.keithleyIntegrationRate = '\nWhile setting the ''integrationRate'' property of ''%s'': \n-> Value must be numeric and in the range of 0.01 to 10.';
     E.keithleySpacing = '\nWhile setting the ''spacing'' property of ''%s'': \n-> Value must be ''LIN'' or ''LOG''.';
-
+    E.keithleyMode = '\nWhile setting the ''mode'' property of ''%s'': \n-> Value must be ''I'' for current or ''V'' for voltage measurements.';
+    
     E.keithleySetSourceV = '\nCould not set Voltage as source in %s!';
     E.keithleySetIntegrationRate = '\nCould not set integration rate in %s!';
     
-    E.fwsAbsPos = '\nWhile setting a absolute position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 4096 steps.';
-    E.fwsRelPos = '\nWhile setting a relative position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 4096 steps.';
+    E.fwsAbsPos = '\nWhile setting an absolute position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 4000 steps.';
+    E.fwsRelPos = '\nWhile setting a relative position property of ''%s'': \n-> Value must be numeric and in the range of -4000 to 4000 steps.';
+    
+    E.fwtAbsPos = '\nWhile setting an absolute position property of ''%s'': \n-> Value must be numeric and in the range of 1 to 24 steps.';
+    E.fwtWavelengthPos = '\nWhile setting a wavelength dependent position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 1800 nm.';
+    E.fwtFilters = '\nWhile setting filters to correlating positions property of ''%s'': \n-> Parameter must be a numeric Yx2 array with values in the range of 0 to 1800 nm.';
+    
+    E.omni300Grating = '\nWhile setting a grating property of ''%s'': \n-> Value must be numeric and in the range of 1 to 3 nm.';
+    E.omni300Wavelength = '\nWhile setting a wavelength property of ''%s'': \n-> Value must be numeric and in the range of 0 to 1800 nm.';
     
     try
         if nargin > 1

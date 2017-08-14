@@ -27,14 +27,23 @@ function validFcn = validationFcn(fcnKey,fcnName)
     
     fcn.keithleySetV        = @(x) assert(isnumeric(x) && isscalar(x) && abs(x)<=20,getErrorMessage(fcnKey,fcnName));
     fcn.keithleySetMultV    = @(x) assert(isnumeric(x) && max(abs(x))<=20,getErrorMessage(fcnKey,fcnName));
-    fcn.keithleySetStepV    = @(x) assert(isnumeric(x) && isscalar(x) && (abs(x)>=0.001 && abs(x)<=5),getErrorMessage(fcnKey,fcnName));
+    fcn.keithleySetStepV    = @(x) assert(isnumeric(x) && isscalar(x) && (abs(x)>=0.00001 && abs(x)<=5),getErrorMessage(fcnKey,fcnName));
     fcn.keithleyDelay       = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=9999,getErrorMessage(fcnKey,fcnName));
     fcn.keithleyDelayMult   = @(x) assert(isnumeric(x) && min(x)>=0 && max(x)<=9999,getErrorMessage(fcnKey,fcnName));
+    fcn.keithleyDuration    = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=9999,getErrorMessage(fcnKey,fcnName));
     fcn.keithleyIntegrationRate = @(x) assert(isnumeric(x) && isscalar(x) && x>=0.01 && x<=10,getErrorMessage(fcnKey,fcnName));   
     fcn.keithleySpacing     = @(x) assert(any(validatestring(x,{'LIN','LOG'})),getErrorMessage(fcnKey,fcnName));
+    fcn.keithleyMode        = @(x) assert(any(validatestring(x,{'I','V'})),getErrorMessage(fcnKey,fcnName));
     
-    fcn.fwsAbsPos = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=4096 && round(x)==x,getErrorMessage(fcnKey,fcnName));
-    fcn.fwsRelPos = fcn.fwsAbsPos;
+    fcn.fwsAbsPos = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=4000 && round(x)==x,getErrorMessage(fcnKey,fcnName));
+    fcn.fwsRelPos = @(x) assert(isnumeric(x) && isscalar(x) && abs(x)<=4000 && round(x)==x,getErrorMessage(fcnKey,fcnName));
+    
+    fcn.fwtAbsPos = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=24 && round(x)==x,getErrorMessage(fcnKey,fcnName));
+    fcn.fwtWavelengthPos = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=1800 && round(x)==x,getErrorMessage(fcnKey,fcnName));
+    fcn.fwtFilters = @(x) assert(isnumeric(x) && size(x,1)>0 && size(x,1)<=24 && size(x,2)==2,getErrorMessage(fcnKey,fcnName));
+    
+    fcn.omni300Grating = @(x) assert(isnumeric(x) && isscalar(x) && x>=1 && x<=3 && round(x)==x,getErrorMessage(fcnKey,fcnName));
+    fcn.omni300Wavelength = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=1800 && round(x)==x,getErrorMessage(fcnKey,fcnName));
     
     try
         validFcn = fcn.(fcnKey);

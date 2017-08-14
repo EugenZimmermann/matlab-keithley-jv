@@ -10,7 +10,7 @@ function [result,status] = check_value(value,start,stop)
 %   result: (Converted) numeric value of input
 %	status: 1 if numeric value was found at all AND is between start and stop, otherwise 0
 
-% Tested: Matlab 2014a, 2014b, 2015a, Win8
+% Tested: Matlab 2014a, 2014b, 2015a, 2017a, Win8, Win10
 % Author: Eugen Zimmermann, Konstanz, (C) 2015 eugen.zimmermann@uni-konstanz.de
 
 input = inputParser;
@@ -18,10 +18,6 @@ addRequired(input,'value');
 addRequired(input,'start',@(x) isnumeric(x) && isscalar(x) && ~isnan(x));
 addRequired(input,'stop',@(x) isnumeric(x) && isscalar(x) && ~isnan(x));
 parse(input,value,start,stop);
-
-value = input.Results.value;
-start = input.Results.start;
-stop = input.Results.stop;
 
     try
         if iscell(value)
@@ -43,7 +39,7 @@ stop = input.Results.stop;
         if ~status
             errordlg(['Input must be between ',num2str(start),' and ',num2str(stop)], 'Error')
             result = -888;
-            return;
+            return
         end
 
         result = value;
