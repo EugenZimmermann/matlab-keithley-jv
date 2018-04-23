@@ -21,6 +21,8 @@ function validFcn = validationFcn(fcnKey,fcnName)
     fcn.gpibPort    = @(x) assert(isnumeric(x) && isscalar(x) && (x > 0) && (x<256),getErrorMessage(fcnKey,fcnName));
     fcn.connectionType = @(x) assert(~isempty(regexpi(x,'^serial$|^gpib$')),getErrorMessage(fcnKey,fcnName));
     
+    fcn.percent     = @(x) assert(isnumeric(x) && isscalar(x) && x>0 && x<=100,getErrorMessage(fcnKey,fcnName));
+    fcn.timeSeconds = @(x) assert(isnumeric(x) && isscalar(x) && x>0 && x<=600,getErrorMessage(fcnKey,fcnName));
     fcn.boolean     = @(x) assert((isnumeric(x) && isscalar(x) && (x==1||x==0))|islogical(x));
     fcn.temperature = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=320,getErrorMessage(fcnKey,fcnName));
     fcn.tries       = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=10,getErrorMessage(fcnKey,fcnName));
@@ -45,6 +47,12 @@ function validFcn = validationFcn(fcnKey,fcnName)
     fcn.omni300Grating = @(x) assert(isnumeric(x) && isscalar(x) && x>=1 && x<=3 && round(x)==x,getErrorMessage(fcnKey,fcnName));
     fcn.omni300Wavelength = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=1800 && round(x)==x,getErrorMessage(fcnKey,fcnName));
     
+    fcn.laserNKTWavelength = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=1800,getErrorMessage(fcnKey,fcnName));
+    
+    fcn.atcTemperature = @(x) assert(isnumeric(x) && isscalar(x) && x>=0 && x<=120 && round(x)==x,getErrorMessage(fcnKey,fcnName));
+    fcn.atcChannel = @(x) assert(any(validatestring(x,{'A','a','B','b'})),getErrorMessage(fcnKey,fcnName));
+    fcn.atcGetCommands = @(x) assert(any(validatestring(x,{'A','a','B','b','R','r','S','s','T','t','P','p','D','d'})),getErrorMessage(fcnKey,fcnName));
+    fcn.atcDutyCycle = @(x) assert(isnumeric(x) && isscalar(x) && x>=100 && x<=1E6 && round(x)==x,getErrorMessage(fcnKey,fcnName));
     try
         validFcn = fcn.(fcnKey);
     catch e

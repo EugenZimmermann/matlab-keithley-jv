@@ -23,6 +23,8 @@ function errMsg = getErrorMessage(errKey,varargin)
     E.deviceNotFound = '%s not found on port: %s  \nfound instead: ... %s';
     E.deviceNotConnected = 'Device %s not connected!';
     
+    E.percent     = '\nWhile setting a property in ''percent'' of ''%s'': \n-> Value must be numeric and in the range of 0 to 100 %%.';
+    E.timeSeconds = '\nWhile setting a ''timeSeconds'' property of ''%s'': \n-> Value must be numeric and in the range of 0 to 600 s.';
     E.boolean = '\nWhile setting a ''state'' property of ''%s'': \n-> Value must be numeric (0 or 1), or logical (false or true).';
     E.temperature = '\nWhile setting a ''temperature'' property of ''%s'': \n-> Value must be numeric and in the range of 0 to 320 K.';
     E.tries = '\nWhile setting a ''tries'' property of ''%s'': \n-> Value must be numeric and in the range of 0 to 10.';
@@ -43,13 +45,19 @@ function errMsg = getErrorMessage(errKey,varargin)
     E.fwsAbsPos = '\nWhile setting an absolute position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 4000 steps.';
     E.fwsRelPos = '\nWhile setting a relative position property of ''%s'': \n-> Value must be numeric and in the range of -4000 to 4000 steps.';
     
-    E.fwtAbsPos = '\nWhile setting an absolute position property of ''%s'': \n-> Value must be numeric and in the range of 1 to 24 steps.';
+    E.fwtAbsPos = '\nWhile setting an absolute position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 24 steps.';
     E.fwtWavelengthPos = '\nWhile setting a wavelength dependent position property of ''%s'': \n-> Value must be numeric and in the range of 0 to 1800 nm.';
     E.fwtFilters = '\nWhile setting filters to correlating positions property of ''%s'': \n-> Parameter must be a numeric Yx2 array with values in the range of 0 to 1800 nm.';
     
     E.omni300Grating = '\nWhile setting a grating property of ''%s'': \n-> Value must be numeric and in the range of 1 to 3 nm.';
     E.omni300Wavelength = '\nWhile setting a wavelength property of ''%s'': \n-> Value must be numeric and in the range of 0 to 1800 nm.';
     
+    E.laserNKTWavelength = '\nWhile setting a wavelength property of ''%s'': \n-> Value must be numeric and in the range of 0 to 1800 nm.';
+    
+    E.atcTemperature = '\nWhile setting the temperature of ''%s'': \n-> Value must be numeric and in the range of 0 to 120 °C.';
+    E.atcChannel = '\nWhile setting the channel of ''%s'': \n-> Value must be ''A'' or ''B''.';
+    E.atcGetCommands = '\nWhile setting the data to read of ''%s'': \n-> Value must be ''T'' for Temperature, ''P'' for Power, ''S'' for Setpoint, ''R'' for Raw, or ''D'' for DutyCycle.';
+    E.atcDutyCycle = '\nWhile setting the duty cylce of ''%s'': \n-> Value must be numeric and in the range of 100 to 1E6 ms.';
     try
         if nargin > 1
             errMsg = sprintf(E.(errKey),varargin{1});

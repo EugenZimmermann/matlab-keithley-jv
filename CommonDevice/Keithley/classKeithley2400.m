@@ -45,7 +45,7 @@ classdef classKeithley2400 < handle
 %
 % Tested: Matlab 2015b, Win10, NI GPIB-USB-HS+ Controller, Keithley KUSB-488B Controller, Keithley 2400, Keithley2410, Keithley2401
 % Author: Eugen Zimmermann, Konstanz, (C) 2016 eugen.zimmermann@uni-konstanz.de
-% Last Modified on 2016-10-14
+% Last Modified on 2018-03-23
     properties (Constant)
         Type = 'device';
         functionName = 'classKeithley2400';
@@ -925,6 +925,7 @@ classdef classKeithley2400 < handle
             
             ax = input.Results.plotHandle;
             tC = input.Results.temperatureController;
+				measureTemperature = ~isempty(tC) && isfield(tC,'startTemp') && isfield(tC,'endTemp') && isfield(tC,'device') && tC.device.getConnectionStatus();
             
             outputData = struct();
             outputData.voltage = 0;
@@ -956,7 +957,7 @@ classdef classKeithley2400 < handle
             current = zeros(2500,1);
             voltage = zeros(2500,1);
             time = zeros(2500,1);
-            if ~isempty(tC)
+            if measureTemperature
                 temperature = zeros(2500,1);
                 tempFactor = tC.startTemp>tC.endTemp;
             end
@@ -1012,7 +1013,7 @@ classdef classKeithley2400 < handle
                 current = nums(2:3:end-1);
                 time = nums(3:3:end);
                 a = time(end)-time(1);
-                if ~isempty(tC)
+                if measureTemperature
                     b = length(nonzeros(time));
                     c = length(nonzeros(temperature));
                     outputTemp = tC.device.getTemp();
@@ -1057,7 +1058,7 @@ classdef classKeithley2400 < handle
             outputData.current = current';
             outputData.time = time';
             outputData.t0 = t0';
-            if ~isempty(tC)
+            if measureTemperature
                 outputData.temperature = temperature(1:length(time));
             end
             
@@ -1073,8 +1074,8 @@ classdef classKeithley2400 < handle
                 err = 99;
                 return
             else
-                device.goIdle();
                 device.setOutputState(0);
+				device.goIdle();
                 err = 0;
                 return
             end
@@ -1255,9 +1256,12 @@ classdef classKeithley2400 < handle
             addRequired(input,'duration',validationFcn('keithleyDelayMult',device.functionName));
             addRequired(input,'delay',validationFcn('keithleyDelay',device.functionName));
             addOptional(input,'integrationRate',device.intRate,validationFcn('keithleyIntegrationRate',device.functionName));
+            addParameter(input,'mode','V',validationFcn('keithleyMode',device.functionName));
             addParameter(input,'lightControl',[]);
             addParameter(input,'plotHandle',0,@(x) (isnumeric(x) && x==0) || isgraphics(x,'axes') || (isstruct(x) && isfield(x,'update')));
             parse(input,device,sourceV,duration,delay,varargin{:})
+            
+            mode = input.Results.mode;
             
             lC = input.Results.lightControl;
             if isfield(lC,'device')
@@ -1285,7 +1289,7 @@ classdef classKeithley2400 < handle
                 errordlg(sprintf(getErrorMessage('deviceNotConnected'),device.defaultID))
                 return
             end
-            err = device.setTimeScan(input.Results.sourceV(1),input.Results.delay,input.Results.integrationRate);
+            err = device.setTimeScan(input.Results.sourceV(1),input.Results.delay,input.Results.integrationRate,'mode',mode);
             if err
                 return
             end
@@ -1297,19 +1301,19 @@ classdef classKeithley2400 < handle
 %                     return
 %                 end
             end
-            [outputData,err] = device.measureTimeScan(input.Results.duration(1),'plotHandle',ax);
+            [outputData,err] = device.measureTimeScan(input.Results.duration(1),'plotHandle',ax,'mode',mode);
             if err
                 return
             end
             
             for n1 = 2:length(input.Results.sourceV)
                 if input.Results.duration(n1)>0
-                    err = device.updateTimeScan(input.Results.sourceV(n1),input.Results.delay,input.Results.integrationRate);
+                    err = device.updateTimeScan(input.Results.sourceV(n1),input.Results.delay,input.Results.integrationRate,'mode',mode);
                     if err
                         return
                     end
                     
-                    [outputDataTemp,err] = device.measureTimeScan(input.Results.duration(n1),'plotHandle',ax,'hold',1);
+                    [outputDataTemp,err] = device.measureTimeScan(input.Results.duration(n1),'plotHandle',ax,'hold',1,'mode',mode);
                     if err
                         return
                     end
